@@ -23,13 +23,12 @@ Se a sua pasta local estiver vazia, todas os capítulos serão baixadas!
 
 Também funciona no navegador, mas é melhor do cli devido ao feedback instantâneo
 
-### Commands to download series
-    php start.php -s "Series name example" -s "series-slug-example"
-    php start.php --series-name "Series name example" -series-name "series-slug-example"
-
-### Command to download lessons
-    php start.php -m "nanatsu-no-taizai"
-
+    php start.php -m "nanatsu-no-taizai" 
+  
+  obs: o nome do manga deve ser o exatamente igual ao Slug da página do mangá
+  
+  ex: http://goldenmangas.com/mangas/nanatsu-no-taizai
+  
 
 Autor: @luuckymacedo
 
