@@ -176,24 +176,7 @@ class Resolver
     {
         $downloadUrl = Parser::getDownloadLink($html);
 
-
-        //file_put_contents($saveTo, file_get_contents($downloadUrl));
-        $downloadedBytes = file_exists($saveTo) ? filesize($saveTo) : 0;
-        $req = $this->client->createRequest('GET', $downloadUrl, [
-            'save_to' => fopen($saveTo, 'a'),
-            'verify'  => FALSE,
-            'headers' => [
-                'Range' => 'bytes=' . $downloadedBytes . '-'
-            ]
-        ]);
-        if (php_sapi_name() == "cli") { //on cli show progress
-            $req->getEmitter()->on('progress', function (ProgressEvent $e) use ($downloadedBytes) {
-                printf("> Total: %d%% Downloaded: %s of %s     \r",
-                    Utils::getPercentage($e->downloaded + $downloadedBytes, $e->downloadSize),
-                    Utils::formatBytes($e->downloaded + $downloadedBytes),
-                    Utils::formatBytes($e->downloadSize));
-            });
-        }
+        file_put_contents($saveTo, file_get_contents($downloadUrl));
 
         return TRUE;
     }
