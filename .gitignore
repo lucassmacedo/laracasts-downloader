@@ -11,7 +11,7 @@ cacert.pem
 *.mp4
 
 App/.DS_Store
-
+Downloads
 .DS_Store
 
 .phpintel/

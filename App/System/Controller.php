@@ -2,6 +2,7 @@
 /**
  * System Controller
  */
+
 namespace App\System;
 
 use App\Downloader;
@@ -35,13 +36,12 @@ class Controller
      *
      * @return array
      */
-    public function getAllLessons()
+    public function getAllMangas()
     {
-        $array            = [];
-        $array['lessons'] = $this->getLessons(true);
-        $array['series']  = $this->getSeries(true);
+        $array = [];
+        $array['mangas'] = $this->getSeries(TRUE);
 
-        Downloader::$totalLocalLessons = count($array['lessons']);
+        Downloader::$totalMangasLessons = count($array['mangas']);
 
         return $array;
     }
@@ -53,9 +53,11 @@ class Controller
      *
      * @return array
      */
-    private function getSeries($skip = false)
+    private function getSeries($skip = FALSE)
     {
-        $list  = $this->system->listContents(SERIES_FOLDER, true);
+
+        $list = $this->system->listContents(MANGAS_FOLDER, TRUE);
+
         $array = [];
 
         foreach ($list as $entry) {
@@ -63,15 +65,15 @@ class Controller
                 continue;
             } //skip folder, we only want the files
 
-            $serie   = substr($entry['dirname'], strlen(SERIES_FOLDER) + 1);
+            $serie = substr($entry['dirname'], strlen(MANGAS_FOLDER) + 1);
             $episode = (int)substr($entry['filename'], 0, strpos($entry['filename'], '-'));
 
             $array[$serie][] = $episode;
         }
 
-        if($skip) {
-            foreach($this->getSkipSeries() as $skipSerie => $episodes) {
-                if(!isset($array[$skipSerie])) {
+        if ($skip) {
+            foreach ($this->getSkipSeries() as $skipSerie => $episodes) {
+                if (!isset($array[$skipSerie])) {
                     $array[$skipSerie] = $episodes;
                     continue;
                 }
@@ -91,9 +93,9 @@ class Controller
      *
      * @return array
      */
-    public function getLessons($skip = false)
+    public function getLessons($skip = FALSE)
     {
-        $list  = $this->system->listContents(LESSONS_FOLDER);
+        $list = $this->system->listContents(LESSONS_FOLDER);
         $array = [];
 
         foreach ($list as $entry) {
@@ -121,9 +123,9 @@ class Controller
     {
         $file = LESSONS_FOLDER . '/.skip';
 
-        $lessons = serialize($this->getLessons(true));
+        $lessons = serialize($this->getLessons(TRUE));
 
-        if($this->system->has($file)) {
+        if ($this->system->has($file)) {
             $this->system->delete($file);
         }
 
@@ -151,11 +153,11 @@ class Controller
      */
     public function writeSkipSeries()
     {
-        $file = SERIES_FOLDER . '/.skip';
+        $file = MANGAS_FOLDER . '/.skip';
 
-        $series = serialize($this->getSeries(true));
+        $series = serialize($this->getSeries(TRUE));
 
-        if($this->system->has($file)) {
+        if ($this->system->has($file)) {
             $this->system->delete($file);
         }
 
@@ -177,7 +179,7 @@ class Controller
      */
     public function getSkipSeries()
     {
-        return $this->getSkipedData(SERIES_FOLDER . '/.skip');
+        return $this->getSkipedData(MANGAS_FOLDER . '/.skip');
     }
 
     /**
@@ -186,7 +188,8 @@ class Controller
      * @param $pathToSkipFile
      * @return array|mixed
      */
-    private function getSkipedData($pathToSkipFile) {
+    private function getSkipedData($pathToSkipFile)
+    {
 
         if ($this->system->has($pathToSkipFile)) {
             $content = $this->system->read($pathToSkipFile);
@@ -210,15 +213,15 @@ class Controller
             }
 
             $originalName = $entry['basename'];
-            $oldNumber    = substr($originalName, 0, strpos($originalName, '-'));
+            $oldNumber = substr($originalName, 0, strpos($originalName, '-'));
 
             if (strlen($oldNumber) == 4) {
                 continue;
             } // already correct
 
-            $newNumber         = sprintf("%04d", $oldNumber);
+            $newNumber = sprintf("%04d", $oldNumber);
             $nameWithoutNumber = substr($originalName, strpos($originalName, '-') + 1);
-            $newName           = $newNumber . '-' . $nameWithoutNumber;
+            $newName = $newNumber . '-' . $nameWithoutNumber;
 
             $this->system->rename(LESSONS_FOLDER . '/' . $originalName, LESSONS_FOLDER . '/' . $newName);
         }
@@ -231,7 +234,7 @@ class Controller
      */
     public function createSerieFolderIfNotExists($serie)
     {
-        $this->createFolderIfNotExists(SERIES_FOLDER . '/' . $serie);
+        $this->createFolderIfNotExists(MANGAS_FOLDER . '/' . $serie);
     }
 
     /**
@@ -241,7 +244,7 @@ class Controller
      */
     public function createFolderIfNotExists($folder)
     {
-        if ($this->system->has($folder) === false) {
+        if ($this->system->has($folder) === FALSE) {
             $this->system->createDir($folder);
         }
     }

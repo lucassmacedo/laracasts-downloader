@@ -10,7 +10,7 @@ require_once 'bootstrap.php';
 /*
  * Dependencies
  */
-$client = new GuzzleHttp\Client(['base_url' => LARACASTS_BASE_URL]);
+$client = new GuzzleHttp\Client(['base_url' => BASE_URL]);
 $filesystem = new Filesystem(new Adapter(BASE_FOLDER));
 $bench = new Ubench();
 

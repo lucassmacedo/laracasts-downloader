@@ -11,7 +11,8 @@
     "ext-curl": "*",
     "ext-xml": "*",
     "vlucas/phpdotenv": "^2.3",
-    "cocur/slugify": "^2.3"
+    "cocur/slugify": "^2.3",
+    "symfony/var-dumper": "^4.1@dev"
   },
   "require-dev": {
     "digitalnature/php-ref": "dev-master"

@@ -2,6 +2,7 @@
 /**
  * Main cycle of the app
  */
+
 namespace App;
 
 use App\Exceptions\LoginException;
@@ -42,7 +43,7 @@ class Downloader
      * Number of local lessons
      * @var int
      */
-    public static $totalLocalLessons;
+    public static $totalMangasLessons;
 
     /**
      * Current lesson number
@@ -61,9 +62,9 @@ class Downloader
      * @param Ubench $bench
      * @param bool $retryDownload
      */
-    public function __construct(Client $client, Filesystem $system, Ubench $bench, $retryDownload = false)
+    public function __construct(Client $client, Filesystem $system, Ubench $bench, $retryDownload = FALSE)
     {
-        $this->client = new Resolver($client, $bench, $retryDownload);
+        $this->client = new Resolver($client, $bench, $retryDownload, $system);
         $this->system = new Controller($system);
         $this->bench = $bench;
     }
@@ -75,85 +76,50 @@ class Downloader
      */
     public function start($options)
     {
-        try {
-            $counter = [
-                'series'  => 1,
-                'lessons' => 1,
-                'failed_episode' => 0,
-                'failed_lesson' => 0
-            ];
+        $counter = [
+            'mangas'         => 1,
+            'failed_chapter' => 0
+        ];
 
-            Utils::box('Authenticating');
+        Utils::box('Starting Collecting the data');
 
-            $this->doAuth($options);
+        $this->bench->start();
 
-            Utils::box('Starting Collecting the data');
-
-            $this->bench->start();
-
-            $localLessons = $this->system->getAllLessons();
-            $allLessonsOnline = $this->client->getAllLessons();
-
-            // Sort series episodes from low to high (download order)
-            $this->sortSeries($allLessonsOnline);
-
-            $this->bench->end();
-
-
-            if($this->_haveOptions()) {  //filter all online lessons to the selected ones
-                $allLessonsOnline = $this->onlyDownloadProvidedLessonsAndSeries($allLessonsOnline);
-            }
-
-            Utils::box('Downloading');
-            //Magic to get what to download
-            $diff = Utils::resolveFaultyLessons($allLessonsOnline, $localLessons);
-
-            $new_lessons = Utils::countLessons($diff);
-            $new_episodes = Utils::countEpisodes($diff);
-
-            Utils::write(sprintf("%d new lessons and %d episodes. %s elapsed with %s of memory usage.",
-                    $new_lessons,
-                    $new_episodes,
-                    $this->bench->getTime(),
-                    $this->bench->getMemoryUsage())
-            );
-
-
-            //Download Lessons
-            if ($new_lessons > 0) {
-                $this->downloadLessons($diff, $counter, $new_lessons);
-            }
-
-            //Donwload Episodes
-            if ($new_episodes > 0) {
-                $this->downloadEpisodes($diff, $counter, $new_episodes);
-            }
-
-            Utils::writeln(sprintf("Finished! Downloaded %d new lessons and %d new episodes. Failed: %d",
-                $new_lessons - $counter['failed_lesson'],
-                $new_episodes - $counter['failed_episode'],
-                $counter['failed_lesson'] + $counter['failed_episode']
-            ));
-        } catch (LoginException $e) {
-            Utils::write("Your login details are wrong!");
-        } catch (SubscriptionNotActiveException $e) {
-            Utils::write('Your subscription is not active!');
+        if (!$this->_haveOptions()) {
+            Utils::box('Você precisa inserir um mangá para baixar');
+            die();
         }
-    }
+        $localLessons = $this->system->getAllMangas();
 
-    /**
-     * Tries to login.
-     *
-     * @param $options
-     *
-     * @throws \Exception
-     */
-    public function doAuth($options)
-    {
-        if (!$this->client->doAuth($options['email'], $options['password'])) {
-            throw new LoginException("Can't do the login..");
+        $allLessonsOnline = $this->client->getAllMangas($this->wantSeries);
+
+        $this->sortSeries($allLessonsOnline);
+
+        $this->bench->end();
+
+        Utils::box('Iniciando Download');
+
+        //Magic to get what to download
+        $diff = Utils::resolveFaultyLessons($allLessonsOnline, $localLessons);
+
+        $new_lessons = Utils::countLessons($diff);
+
+        Utils::write(sprintf("%d novos mangás (Tempo:%s - %s de uso de memória.)",
+                $new_lessons,
+                $this->bench->getTime(),
+                $this->bench->getMemoryUsage())
+        );
+
+        ////Download Lessons
+        if ($new_lessons > 0) {
+            $this->downloadLessons($diff, $counter, $new_lessons);
         }
-        Utils::write("Successfull!");
+
+        Utils::writeln(sprintf("Concluido! Download de :%d capitulos. Falharam: %d",
+            $new_lessons - $counter['failed_chapter'],
+            $counter['failed_chapter']
+        ));
+
     }
 
     /**
@@ -164,105 +130,57 @@ class Downloader
      */
     public function downloadLessons(&$diff, &$counter, $new_lessons)
     {
-        $this->system->createFolderIfNotExists(LESSONS_FOLDER);
-        Utils::box('Downloading Lessons');
-        foreach ($diff['lessons'] as $lesson) {
+        $this->system->createFolderIfNotExists(MANGAS_FOLDER);
 
-            if($this->client->downloadLesson($lesson) === false) {
-                $counter['failed_lesson']++;
+        Utils::box('Downloading Manga Chapters');
+        foreach ($diff['mangas'] as $lesson) {
+            if ($this->client->downloadChapter($lesson) === FALSE) {
+                $counter['failed_chapter']++;
             }
-
             Utils::write(sprintf("Current: %d of %d total. Left: %d",
-                $counter['lessons']++,
+                $counter['mangas']++,
                 $new_lessons,
-                $new_lessons - $counter['lessons'] + 1
+                $new_lessons - $counter['failed_chapter'] + 1
             ));
-        }
-    }
-
-    /**
-     * Download Episodes
-     * @param $diff
-     * @param $counter
-     * @param $new_episodes
-     */
-    public function downloadEpisodes(&$diff, &$counter, $new_episodes)
-    {
-        $this->system->createFolderIfNotExists(SERIES_FOLDER);
-        Utils::box('Downloading Series');
-        foreach ($diff['series'] as $serie => $episodes) {
-            $this->system->createSerieFolderIfNotExists($serie);
-            foreach ($episodes as $episode) {
-
-                if($this->client->downloadSerieEpisode($serie, $episode) === false) {
-                    $counter['failed_episode'] = $counter['failed_episode'] +1;
-                }
-
-                Utils::write(sprintf("Current: %d of %d total. Left: %d",
-                    $counter['series']++,
-                    $new_episodes,
-                    $new_episodes - $counter['series'] + 1
-                ));
-            }
         }
     }
 
     protected function _haveOptions()
     {
-        $found = false;
+        $found = FALSE;
 
-        $short_options = "s:";
+        $short_options = "m:";
         $short_options .= "l:";
 
-        $long_options  = array(
-            "series-name:",
-            "lesson-name:"
-        );
+        $long_options = [
+            "mangas-name:"
+        ];
         $options = getopt($short_options, $long_options);
 
-        Utils::box(sprintf("Checking for options %s", json_encode($options)));
 
-        if(count($options) == 0) {
+        if (count($options) == 0) {
             Utils::write('No options provided');
-            return false;
+
+            return FALSE;
         }
 
         $slugify = new Slugify();
         $slugify->addRule("'", '');
 
-        if(isset($options['s']) || isset($options['series-name'])) {
-            $series = isset($options['s']) ? $options['s'] : $options['series-name'];
-            if(!is_array($series))
+        if (isset($options['m']) || isset($options['mangas-name'])) {
+            $series = isset($options['m']) ? $options['m'] : $options['mangas-name'];
+            if (!is_array($series))
                 $series = [$series];
-
-            Utils::write(sprintf("Series names provided: %s", json_encode($series)));
-
 
             $this->wantSeries = array_map(function ($serie) use ($slugify) {
                 return $slugify->slugify($serie);
             }, $series);
 
-            Utils::write(sprintf("Series names provided: %s", json_encode($this->wantSeries)));
 
-            $found = true;
+            $found = TRUE;
         }
 
-        if(isset($options['l']) || isset($options['lesson-name'])) {
-            $lessons = isset($options['l']) ? $options['l'] : $options['lesson-name'];
-
-            if(!is_array($lessons))
-                $lessons = [$lessons];
-
-            Utils::write(sprintf("Lesson names provided: %s", json_encode($lessons)));
-
-            $this->wantLessons = array_map(function($lesson) use ($slugify) {
-                return $slugify->slugify($lesson); },$lessons
-            );
-
-            Utils::write(sprintf("Lesson names provided: %s", json_encode($this->wantLessons)));
-
-            $found = true;
-        }
+        Utils::box(sprintf("Verificando: %s", implode(",", $series)));
 
         return $found;
     }
@@ -278,34 +196,23 @@ class Downloader
 
         $selectedLessonsOnline = [
             'lessons' => [],
-            'series' => []
+            'mangas'  => []
         ];
 
-        foreach($this->wantSeries as $series) {
-            if(isset($allLessonsOnline['series'][$series])) {
-                Utils::write('Series "'.$series.'" found!');
-                $selectedLessonsOnline['series'][$series] = $allLessonsOnline['series'][$series];
+        foreach ($this->wantSeries as $series) {
+            if (isset($allLessonsOnline['mangas'][$series])) {
+                Utils::write('Series "' . $series . '" found!');
+                $selectedLessonsOnline['mangas'][$series] = $allLessonsOnline['mangas'][$series];
             } else {
-                Utils::write("Series '".$series."' not found!");
-            }
-        }
-
-        foreach($this->wantLessons as $lesson) {
-            if(in_array($lesson, $allLessonsOnline['lessons'])) {
-                Utils::write('Lesson "'.$lesson.'" found');
-                $selectedLessonsOnline['lessons'][] = $lesson;
-            } else {
-                Utils::write("Lesson '".$lesson."' not found!");
+                Utils::write("Series '" . $series . "' not found!");
             }
         }
 
         return $selectedLessonsOnline;
     }
 
-    public function sortSeries(&$allLessons) {
-        foreach ($allLessons['series'] as $k => $v) {
-
-            sort($allLessons['series'][$k], SORT_NUMERIC);
-        }
+    public function sortSeries(&$allLessons)
+    {
+        sort($allLessons['mangas'], SORT_NUMERIC);
     }
 }

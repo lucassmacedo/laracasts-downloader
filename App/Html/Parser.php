@@ -2,6 +2,7 @@
 /**
  * Dom Parser
  */
+
 namespace App\Html;
 
 use App\Exceptions\NoDownloadLinkException;
@@ -23,17 +24,26 @@ class Parser
     {
         $parser = new Crawler($html);
 
-        $parser->filter('h5.lesson-list-title')->each(function (Crawler $node) use (&$array) {
+        $parser->filter('li.row')->each(function (Crawler $node) use (&$array) {
             $link = $node->children()->attr('href');
-            if (preg_match('/'.LARACASTS_LESSONS_PATH.'\/(.+)/', $link, $matches)) { // lesson
-                $array['lessons'][] = $matches[1];
-            } else if ($node->children()->count() > 0) {
-                $link = $node->children()->eq(0)->attr('href');
-
-                if (preg_match('/'.LARACASTS_SERIES_PATH.'\/(.+)\/episodes\/(\d+)/', $link, $matches)) { // serie lesson
-                    $array['series'][$matches[1]][] = (int) $matches[2];
-                }
+            if (preg_match('/' . MANGAS_PATH . '\/(.+)/', $link, $matches)) { // lesson
+                $array['mangas'][] = $matches[1];
             }
+        });
+    }
+
+    /**
+     * Parses the html and adds the lessons the the array.
+     *
+     * @param $html
+     * @param $array
+     */
+    public static function getAllChapters($html, &$array)
+    {
+        $parser = new Crawler($html);
+
+        $parser->filter('img.img-manga')->each(function (Crawler $node) use (&$array) {
+            $array[] = $node->attr('src');
         });
     }
 
@@ -53,7 +63,7 @@ class Parser
             return $node->attr('href');
         }
 
-        return false;
+        return FALSE;
     }
 
     /**
@@ -79,13 +89,7 @@ class Parser
      */
     public static function getDownloadLink($html)
     {
-        preg_match("('\/downloads\/.*?')", $html, $matches);
-
-        if(isset($matches[0]) === false) {
-            throw new NoDownloadLinkException();
-        }
-
-        return LARACASTS_BASE_URL . substr($matches[0],1,-1);
+        return BASE_URL . $html;
     }
 
     /**
@@ -99,7 +103,7 @@ class Parser
     public static function getNameOfEpisode($html, $path)
     {
         $parser = new Crawler($html);
-        $t = $parser->filter("a[href='/".$path."']")->text();
+        $t = $parser->filter("a[href='/" . $path . "']")->text();
 
         return trim($t);
     }

@@ -2,6 +2,7 @@
 /**
  * Utilities
  */
+
 namespace App\Utils;
 
 /**
@@ -48,7 +49,7 @@ class Utils
      */
     public static function countLessons($array)
     {
-        return count($array['lessons']);
+        return count($array['mangas']);
     }
 
     /**
@@ -61,7 +62,7 @@ class Utils
     public static function countEpisodes($array)
     {
         $total = 0;
-        foreach ($array['series'] as $serie) {
+        foreach ($array['mangas'] as $serie) {
             $total += count($serie);
         }
 
@@ -79,27 +80,17 @@ class Utils
     public static function resolveFaultyLessons($onlineListArray, $localListArray)
     {
         $array = [];
-        $array['series'] = [];
-        $array['lessons'] = [];
+        $array['mangas'] = [];
 
-        foreach ($onlineListArray['series'] as $serie => $episodes) {
-            if (isset($localListArray['series'][$serie])) {
-                if (count($episodes) == count($localListArray['series'][$serie])) {
+        foreach ($onlineListArray['mangas'] as $serie => $episode) {
+            if (isset($localListArray['mangas'][$episode])) {
+                if (count($episode) == count($localListArray['mangas'][$episode])) {
                     continue;
                 }
-
-                foreach ($episodes as $episode) {
-                    if (!in_array($episode, $localListArray['series'][$serie])) {
-                        $array['series'][$serie][] = $episode;
-                    }
-                }
             } else {
-                $array['series'][$serie] = $episodes;
+                $array['mangas'][$serie] = $episode;
             }
         }
-
-        $array['lessons'] = array_diff($onlineListArray['lessons'], $localListArray['lessons']);
-
         return $array;
     }
 
@@ -111,9 +102,9 @@ class Utils
     public static function box($text)
     {
         echo self::newLine();
-        echo "====================================".self::newLine();
-        echo $text.self::newLine();
-        echo "====================================".self::newLine();
+        echo "====================================" . self::newLine();
+        echo $text . self::newLine();
+        echo "====================================" . self::newLine();
     }
 
     /**
@@ -123,7 +114,7 @@ class Utils
      */
     public static function write($text)
     {
-        echo "> ".$text.self::newLine();
+        echo "> " . $text . self::newLine();
     }
 
     /**
@@ -138,8 +129,9 @@ class Utils
         $toRemove = 'New';
         $striped = preg_replace('/[^A-Za-z0-9\- _]/', '', $name);
 
-        if (strpos($striped, $toRemove) !== false) { //remove last New string
-            $striped = preg_replace('/'. preg_quote($toRemove, '/') . '$/', '', $striped);
+        if (strpos($striped, $toRemove) !== FALSE) { //remove last New string
+            $striped = preg_replace('/' . preg_quote($toRemove, '/') . '$/', '', $striped);
+
             return rtrim($striped);
         }
 
@@ -154,7 +146,7 @@ class Utils
     public static function writeln($text)
     {
         echo self::newLine();
-        echo "> ".$text.self::newLine();
+        echo "> " . $text . self::newLine();
     }
 
     /**
@@ -163,8 +155,9 @@ class Utils
      * @param int $precision
      * @return string
      */
-    public static function formatBytes($bytes, $precision = 2) {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+    public static function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -181,7 +174,8 @@ class Utils
      * @param $total
      * @return float
      */
-    public static function getPercentage($cur, $total) {
-        return @($cur/$total * 100); //hide warning division by zero
+    public static function getPercentage($cur, $total)
+    {
+        return @($cur / $total * 100); //hide warning division by zero
     }
 }
