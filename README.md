@@ -1,24 +1,13 @@
-# Laracasts Downloader
-[![Join the chat at https://gitter.im/laracasts-downloader](https://badges.gitter.im/laracasts-downloader.svg)](https://gitter.im/laracasts-downloader?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Codacy Badge](https://www.codacy.com/project/badge/c97c63f5736f43c488cb69aa6af8fca9)](https://www.codacy.com/public/carlosmflorencio/laracasts-downloader)
-[![SensioLabsInsight](https://insight.sensiolabs.com/projects/ac2fdb9a-222b-4244-b08e-af5d2f69845d/mini.png)](https://insight.sensiolabs.com/projects/ac2fdb9a-222b-4244-b08e-af5d2f69845d)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/iamfreee/laracasts-downloader/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/iamfreee/laracasts-downloader/?branch=master)
-[![Build Status](https://scrutinizer-ci.com/g/iamfreee/laracasts-downloader/badges/build.png?b=master)](https://scrutinizer-ci.com/g/iamfreee/laracasts-downloader/build-status/master)
+# Mangas Downloader
 
-Downloads new lessons and series from laracasts if there are updates. Or the whole catalogue.
-
-**Working good at 15/09/2017**
+Download de mangas do site : http://goldenmangas.com/
+**Working good at 09/03/2018**
 
 ## Description
-Syncs your local folder with the laracasts website, when there are new lessons the app download it for you.
-If your local folder is empty, all lessons and series will be downloaded!
-
-A .skip file is used to prevent downloading deleted lessons for these with space problems. Thanks to @vinicius73
-
-Just call `php makeskips.php` before deleting the lessons.
+Sincroniza sua pasta local com o site da goldenmangas, quando há novos capitulos de algum manga que voce já baixou.
+Se a sua pasta local estiver vazia, todas os capítulos serão baixadas!
 
 ## An account with an active subscription is necessary!
-Even to download free lessons or series. The download option is only allowed to users with a valid subscription.
 
 ## Requirements
 - PHP >= 5.4
@@ -30,37 +19,20 @@ Even to download free lessons or series. The download option is only allowed to 
 - Clone this repo to a folder in your machine
 - Change your info in .env.example and rename it to .env
 - `composer install`
-- `php start.php` and you are done!
+- `php start.php -m "nanatsu-no-taizai"` e pronto! Seu mangá vai ser baixado!
 
-Also works in the browser, but is better from the cli because of the instant feedback
-
-## Downloading specific series or lessons
-- You can use series and lessons names
-- You can use series and lessons slugs (preferred because there are some custom slugs too)
-- You can download multiples series/lessons
+Também funciona no navegador, mas é melhor do cli devido ao feedback instantâneo
 
 ### Commands to download series
     php start.php -s "Series name example" -s "series-slug-example"
     php start.php --series-name "Series name example" -series-name "series-slug-example"
-    
+
 ### Command to download lessons
-    php start.php -l "Lesson name example" -l "lesson-slug-example"
-    php start.php --lesson-name "Lessons name example" --lesson-name "lesson-slug-example"
+    php start.php -m "nanatsu-no-taizai"
 
-### Using Docker
-- Clone this repo to a folder in your machine
-- Change your info in .env.example and rename it to .env
-- `docker build -t image-name .`
-- `docker run -d -v /host-path:/container-path-in-config.ini image-name` and the path should be absolute
 
-## Troubleshooting
-If you have a `cURL error 60: SSL certificate problem: self signed certificate in certificate chain` or `SLL error: cURL error 35` do this:
+Autor: @luuckymacedo
 
-- Download [http://curl.haxx.se/ca/cacert.pem](http://curl.haxx.se/ca/cacert.pem)
-- Add `curl.cainfo = "PATH_TO/cacert.pem"` to your php.ini
-
-And you are done! If using apache you may need to restart it.
-
+Credits: github.com/carlosflorencio/laracasts-downloader
 ## License
-
 This library is under the MIT License, see the complete license [here](LICENSE)
