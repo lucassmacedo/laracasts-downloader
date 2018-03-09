@@ -115,7 +115,7 @@ class Downloader
             $this->downloadLessons($diff, $counter, $new_lessons);
         }
 
-        Utils::writeln(sprintf("Concluido! Download de :%d capitulos. Falharam: %d",
+        Utils::writeln(sprintf("Concluido! Download de : %d capitulos. Falharam: %d",
             $new_lessons - $counter['failed_chapter'],
             $counter['failed_chapter']
         ));

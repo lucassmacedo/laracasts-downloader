@@ -109,53 +109,6 @@ class Resolver
         return $response->getBody()->getContents();
     }
 
-    /**
-     * Tries to auth.
-     *
-     * @param $email
-     * @param $password
-     *
-     * @return bool
-     * @throws SubscriptionNotActiveException
-     */
-    public function doAuth($email, $password)
-    {
-        $response = $this->client->get(LARACASTS_LOGIN_PATH, [
-            'cookies' => $this->cookie,
-            'verify'  => FALSE
-        ]);
-
-        $token = Parser::getToken($response->getBody()->getContents());
-
-        $response = $this->client->post(LARACASTS_POST_LOGIN_PATH, [
-            'cookies' => $this->cookie,
-            'body'    => [
-                'email'    => $email,
-                'password' => $password,
-                '_token'   => $token,
-                'remember' => 1,
-            ],
-            'verify'  => FALSE
-        ]);
-
-        $html = $response->getBody()->getContents();
-
-        if (strpos($html, "Reactivate") !== FALSE) {
-            throw new SubscriptionNotActiveException();
-        }
-
-        if (strpos($html, "The email must be a valid email address.") !== FALSE) {
-            return FALSE;
-        }
-
-        // user doesnt provided an email in the .env
-        // laracasts redirects to login page again
-        if (strpos($html, 'name="password"') !== FALSE) {
-            return FALSE;
-        }
-
-        return strpos($html, "verify your credentials.") === FALSE;
-    }
 
     /**
      * Download the episode of the serie.
@@ -221,51 +174,26 @@ class Resolver
      */
     private function downloadMangaFromPath($html, $saveTo)
     {
-        //try {
-        //    $viemoUrl = $this->getRedirectUrl($downloadUrl);
-        //    $finalUrl = $this->getRedirectUrl($viemoUrl);
-        //} catch (NoDownloadLinkException $e) {
-        //    Utils::write(sprintf("Can't download this lesson! :( No download button"));
-        //
-        //    try {
-        //        Utils::write(sprintf("Tring to find a Wistia.net video"));
-        //        $Wistia = new Wistia($html, $this->bench);
-        //        $finalUrl = $Wistia->getDownloadUrl();
-        //    } catch (NoDownloadLinkException $e) {
-        //        return FALSE;
-        //    }
-        //
-        //}
         $downloadUrl = Parser::getDownloadLink($html);
-        $retries = 0;
-        try {
-            //file_put_contents($saveTo, file_get_contents($downloadUrl));
-            $downloadedBytes = file_exists($saveTo) ? filesize($saveTo) : 0;
-            $req = $this->client->createRequest('GET', $downloadUrl, [
-                'save_to' => fopen($saveTo, 'a'),
-                'verify'  => FALSE,
-                'headers' => [
-                    'Range' => 'bytes=' . $downloadedBytes . '-'
-                ]
-            ]);
-            if (php_sapi_name() == "cli") { //on cli show progress
-                $req->getEmitter()->on('progress', function (ProgressEvent $e) use ($downloadedBytes) {
-                    printf("> Total: %d%% Downloaded: %s of %s     \r",
-                        Utils::getPercentage($e->downloaded + $downloadedBytes, $e->downloadSize),
-                        Utils::formatBytes($e->downloaded + $downloadedBytes),
-                        Utils::formatBytes($e->downloadSize));
-                });
-            }
 
-        } catch (\Exception $e) {
-            //if (is_a($e, SubscriptionNotActiveException::class) || !$this->retryDownload || ($this->retryDownload && $retries >= 3)) {
-            //    throw $e;
-            //}
-            //++$retries;
-            //Utils::writeln(sprintf("Retry download after connection fail!     "));
-            //continue;
+
+        //file_put_contents($saveTo, file_get_contents($downloadUrl));
+        $downloadedBytes = file_exists($saveTo) ? filesize($saveTo) : 0;
+        $req = $this->client->createRequest('GET', $downloadUrl, [
+            'save_to' => fopen($saveTo, 'a'),
+            'verify'  => FALSE,
+            'headers' => [
+                'Range' => 'bytes=' . $downloadedBytes . '-'
+            ]
+        ]);
+        if (php_sapi_name() == "cli") { //on cli show progress
+            $req->getEmitter()->on('progress', function (ProgressEvent $e) use ($downloadedBytes) {
+                printf("> Total: %d%% Downloaded: %s of %s     \r",
+                    Utils::getPercentage($e->downloaded + $downloadedBytes, $e->downloadSize),
+                    Utils::formatBytes($e->downloaded + $downloadedBytes),
+                    Utils::formatBytes($e->downloadSize));
+            });
         }
-
 
         return TRUE;
     }
@@ -282,24 +210,6 @@ class Resolver
             ->get($path, ['verify' => FALSE])
             ->getBody()
             ->getContents();
-    }
-
-    /**
-     * Helper to get the Location header.
-     *
-     * @param $url
-     *
-     * @return string
-     */
-    private function getRedirectUrl($url)
-    {
-        $response = $this->client->get($url, [
-            'cookies'         => $this->cookie,
-            'allow_redirects' => FALSE,
-            'verify'          => FALSE
-        ]);
-
-        return $response->getHeader('Location');
     }
 
     /**
