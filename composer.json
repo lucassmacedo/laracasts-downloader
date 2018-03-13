@@ -1,6 +1,6 @@
 {
-  "name": "iamfreee/laracasts-downloader",
-  "description": "PHP library to download laracasts lessons",
+  "name": "lucassmacedo/mangas-downloader",
+  "description": "PHP library to download mangas chapters",
   "license": "MIT",
   "require": {
     "guzzlehttp/guzzle": "~5.2",
