@@ -5,8 +5,6 @@
 
 namespace App;
 
-use App\Exceptions\LoginException;
-use App\Exceptions\SubscriptionNotActiveException;
 use App\Http\Resolver;
 use App\System\Controller;
 use App\Utils\Utils;
@@ -14,6 +12,7 @@ use Cocur\Slugify\Slugify;
 use GuzzleHttp\Client;
 use League\Flysystem\Filesystem;
 use Ubench;
+use League\CLImate\CLImate;
 
 /**
  * Class Downloader
@@ -52,7 +51,7 @@ class Downloader
     public static $currentLessonNumber;
 
     private $wantSeries = [];
-    private $wantLessons = [];
+    private $climate;
 
     /**
      * Receives dependencies
@@ -67,6 +66,7 @@ class Downloader
         $this->client = new Resolver($client, $bench, $retryDownload, $system);
         $this->system = new Controller($system);
         $this->bench = $bench;
+        $this->climate = new CLImate;
     }
 
     /**
@@ -74,74 +74,72 @@ class Downloader
      *
      * @param $options
      */
-    public function start($options)
+    public function start()
     {
         $counter = [
             'mangas'         => 1,
             'failed_chapter' => 0
         ];
 
-        Utils::box('Starting Collecting the data');
-
         $this->bench->start();
 
         if (!$this->_haveOptions()) {
-            Utils::box('Você precisa inserir um mangá para baixar');
+            $this->climate->red('Você precisa inserir um mangá para baixar.');
             die();
         }
-        $localLessons = $this->system->getAllMangas();
+        $allMangaLocal = $this->system->getAllMangas();
 
-        $allLessonsOnline = $this->client->getAllMangas($this->wantSeries);
+        $allMangaOnline = $this->client->getAllMangas($this->wantSeries);
 
-        $this->sortSeries($allLessonsOnline);
+        $this->sortSeries($allMangaOnline);
 
         $this->bench->end();
+        $this->climate->flank('Iniciando Download')->border('=', 50);
 
-        Utils::box('Iniciando Download');
+        $diff = Utils::resolveFaultyLessons($allMangaOnline, $allMangaLocal);
 
-        //Magic to get what to download
-        $diff = Utils::resolveFaultyLessons($allLessonsOnline, $localLessons);
-
-        $new_lessons = Utils::countLessons($diff);
-
-        Utils::write(sprintf("%d novos mangás (Tempo:%s - %s de uso de memória.)",
-                $new_lessons,
+        $new_manga = Utils::countLessons($diff);
+        $this->climate->br();
+        $this->climate->out(sprintf("%d novos mangás (Tempo:%s - %s de uso de memória.)",
+                $new_manga,
                 $this->bench->getTime(),
                 $this->bench->getMemoryUsage())
-        );
+        )->border('=', 50);
 
-        ////Download Lessons
-        if ($new_lessons > 0) {
-            $this->downloadLessons($diff, $counter, $new_lessons);
+        if ($new_manga > 0) {
+            $this->downloadMangaChapters($diff, $counter, $new_manga);
         }
-
-        Utils::writeln(sprintf("Concluido! Download de : %d capitulos. Falharam: %d",
-            $new_lessons - $counter['failed_chapter'],
+        $this->climate->br();
+        $this->climate->out(sprintf("Concluido! Download de : %d capitulos. Falharam: %d",
+            $new_manga - $counter['failed_chapter'],
             $counter['failed_chapter']
         ));
 
     }
 
     /**
-     * Download Lessons
+     * Download Manga Chapters
      * @param $diff
      * @param $counter
-     * @param $new_lessons
+     * @param $new_manga
      */
-    public function downloadLessons(&$diff, &$counter, $new_lessons)
+    public function downloadMangaChapters(&$diff, &$counter, $new_manga)
     {
         $this->system->createFolderIfNotExists(MANGAS_FOLDER);
 
-        Utils::box('Downloading Manga Chapters');
+
         foreach ($diff['mangas'] as $lesson) {
             if ($this->client->downloadChapter($lesson) === FALSE) {
                 $counter['failed_chapter']++;
             }
-            Utils::write(sprintf("Current: %d of %d total. Left: %d",
+            $this->bench->end();
+            $this->climate->flank(sprintf("Atual: %d de %d. Faltando: %d",
                 $counter['mangas']++,
-                $new_lessons,
-                $new_lessons - $counter['failed_chapter'] + 1
-            ));
+                $new_manga,
+                $new_manga - $counter['failed_chapter'] + 1
+            ))->border('=', 50);
+            $this->climate->br();
+
         }
     }
 
@@ -150,7 +148,6 @@ class Downloader
         $found = FALSE;
 
         $short_options = "m:";
-        $short_options .= "l:";
 
         $long_options = [
             "mangas-name:"
@@ -158,11 +155,7 @@ class Downloader
         $options = getopt($short_options, $long_options);
 
 
-        if (count($options) == 0) {
-            Utils::write('No options provided');
-
-            return FALSE;
-        }
+        if (count($options) == 0) return FALSE;
 
         $slugify = new Slugify();
         $slugify->addRule("'", '');
@@ -179,18 +172,19 @@ class Downloader
 
             $found = TRUE;
         }
-
-        Utils::box(sprintf("Verificando: %s", implode(",", $series)));
+        $this->climate->br();
+        $this->climate->flank(sprintf("Verificando: %s", $series[0]))->border('=', 50);
+        $this->climate->br();
 
         return $found;
     }
 
     /**
      * Download selected Series and lessons
-     * @param $allLessonsOnline
+     * @param $allMangaOnline
      * @return array
      */
-    public function onlyDownloadProvidedLessonsAndSeries($allLessonsOnline)
+    public function onlyDownloadProvidedLessonsAndSeries($allMangaOnline)
     {
         Utils::box('Checking if series and lessons exists');
 
@@ -200,9 +194,9 @@ class Downloader
         ];
 
         foreach ($this->wantSeries as $series) {
-            if (isset($allLessonsOnline['mangas'][$series])) {
+            if (isset($allMangaOnline['mangas'][$series])) {
                 Utils::write('Series "' . $series . '" found!');
-                $selectedLessonsOnline['mangas'][$series] = $allLessonsOnline['mangas'][$series];
+                $selectedLessonsOnline['mangas'][$series] = $allMangaOnline['mangas'][$series];
             } else {
                 Utils::write("Series '" . $series . "' not found!");
             }

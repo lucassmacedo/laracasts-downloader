@@ -6,7 +6,6 @@
 namespace App\System;
 
 use App\Downloader;
-use App\Utils\Utils;
 use League\Flysystem\Filesystem;
 
 /**
@@ -87,68 +86,6 @@ class Controller
     }
 
     /**
-     * Gets the lessons in the folder.
-     *
-     * @param bool $skip
-     *
-     * @return array
-     */
-    public function getLessons($skip = FALSE)
-    {
-        $list = $this->system->listContents(LESSONS_FOLDER);
-        $array = [];
-
-        foreach ($list as $entry) {
-            if ($entry['type'] != 'file') {
-                continue;
-            }
-
-            $originalName = $entry['filename'];
-
-            $array[] = substr($originalName, strpos($originalName, '-') + 1);
-        }
-
-        if ($skip) {
-            $array = array_merge($this->getSkipLessons(), $array);
-            $array = array_filter(array_unique($array));
-        }
-
-        return $array;
-    }
-
-    /**
-     * Create skip file to lessons
-     */
-    public function writeSkipLessons()
-    {
-        $file = LESSONS_FOLDER . '/.skip';
-
-        $lessons = serialize($this->getLessons(TRUE));
-
-        if ($this->system->has($file)) {
-            $this->system->delete($file);
-        }
-
-        $this->system->write($file, $lessons);
-    }
-
-    /**
-     * run write commands
-     */
-    public function writeSkipFiles()
-    {
-        Utils::box('Creating skip files');
-
-        $this->writeSkipSeries();
-        Utils::write('Skip files for series created');
-
-        $this->writeSkipLessons();
-        Utils::write('Skip files for lesson created');
-
-        Utils::box('Finished');
-    }
-
-    /**
      * Create skip file to lessons
      */
     public function writeSkipSeries()
@@ -162,15 +99,6 @@ class Controller
         }
 
         $this->system->write($file, $series);
-    }
-
-    /**
-     * Get skiped lessons
-     * @return array
-     */
-    public function getSkipLessons()
-    {
-        return $this->getSkipedData(LESSONS_FOLDER . '/.skip');
     }
 
     /**
@@ -200,32 +128,6 @@ class Controller
         return [];
     }
 
-    /**
-     * Rename lessons, adding 0 padding to the number.
-     */
-    public function renameLessonsWithRightPadding()
-    {
-        $list = $this->system->listContents(LESSONS_FOLDER);
-
-        foreach ($list as $entry) {
-            if ($entry['type'] != 'file') {
-                continue;
-            }
-
-            $originalName = $entry['basename'];
-            $oldNumber = substr($originalName, 0, strpos($originalName, '-'));
-
-            if (strlen($oldNumber) == 4) {
-                continue;
-            } // already correct
-
-            $newNumber = sprintf("%04d", $oldNumber);
-            $nameWithoutNumber = substr($originalName, strpos($originalName, '-') + 1);
-            $newName = $newNumber . '-' . $nameWithoutNumber;
-
-            $this->system->rename(LESSONS_FOLDER . '/' . $originalName, LESSONS_FOLDER . '/' . $newName);
-        }
-    }
 
     /**
      * Create series folder if not exists.

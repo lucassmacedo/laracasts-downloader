@@ -25,20 +25,6 @@ class Utils
         return "<br>";
     }
 
-    /**
-     * Count the total lessons of an array of lessons & series.
-     *
-     * @param $array
-     *
-     * @return int
-     */
-    public static function countAllLessons($array)
-    {
-        $total = count($array['lessons']);
-        $total += self::countEpisodes($array);
-
-        return $total;
-    }
 
     /**
      * Counts the lessons from the array.
@@ -91,6 +77,7 @@ class Utils
                 $array['mangas'][$serie] = $episode;
             }
         }
+
         return $array;
     }
 
@@ -117,26 +104,6 @@ class Utils
         echo "> " . $text . self::newLine();
     }
 
-    /**
-     * Remove specials chars that windows does not support for filenames.
-     *
-     * @param $name
-     *
-     * @return mixed
-     */
-    public static function parseEpisodeName($name)
-    {
-        $toRemove = 'New';
-        $striped = preg_replace('/[^A-Za-z0-9\- _]/', '', $name);
-
-        if (strpos($striped, $toRemove) !== FALSE) { //remove last New string
-            $striped = preg_replace('/' . preg_quote($toRemove, '/') . '$/', '', $striped);
-
-            return rtrim($striped);
-        }
-
-        return $striped;
-    }
 
     /**
      * Echo's a message in a new line.

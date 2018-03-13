@@ -20,7 +20,7 @@ class Parser
      * @param $html
      * @param $array
      */
-    public static function getAllLessons($html, &$array)
+    public static function getAllChapters($html, &$array)
     {
         $parser = new Crawler($html);
 
@@ -38,46 +38,13 @@ class Parser
      * @param $html
      * @param $array
      */
-    public static function getAllChapters($html, &$array)
+    public static function getAllPagesChapters($html, &$array)
     {
         $parser = new Crawler($html);
 
         $parser->filter('img.img-manga')->each(function (Crawler $node) use (&$array) {
             $array[] = $node->attr('src');
         });
-    }
-
-    /**
-     * Determines if there is next page, false if not or the link.
-     *
-     * @param $html
-     *
-     * @return bool|string
-     */
-    public static function hasNextPage($html)
-    {
-        $parser = new Crawler($html);
-
-        $node = $parser->filter('[rel=next]');
-        if ($node->count() > 0) {
-            return $node->attr('href');
-        }
-
-        return FALSE;
-    }
-
-    /**
-     * Gets the token input.
-     *
-     * @param $html
-     *
-     * @return string
-     */
-    public static function getToken($html)
-    {
-        $parser = new Crawler($html);
-
-        return $parser->filter("input[name=_token]")->attr('value');
     }
 
     /**
@@ -92,19 +59,4 @@ class Parser
         return BASE_URL . $html;
     }
 
-    /**
-     * Extracts the name of the episode.
-     *
-     * @param $html
-     *
-     * @param $path
-     * @return string
-     */
-    public static function getNameOfEpisode($html, $path)
-    {
-        $parser = new Crawler($html);
-        $t = $parser->filter("a[href='/" . $path . "']")->text();
-
-        return trim($t);
-    }
 }

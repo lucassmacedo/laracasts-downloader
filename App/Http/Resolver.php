@@ -6,16 +6,14 @@
 namespace App\Http;
 
 use App\Downloader;
-use App\Exceptions\NoDownloadLinkException;
-use App\Exceptions\SubscriptionNotActiveException;
 use App\Html\Parser;
 use App\Utils\Utils;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-use GuzzleHttp\Event\ProgressEvent;
 use League\Flysystem\Filesystem;
 use Ubench;
 use App\System\Controller;
+use League\CLImate\CLImate;
 
 /**
  * Class Resolver
@@ -47,6 +45,7 @@ class Resolver
      * @var int
      */
     private $retryDownload = FALSE;
+    private $climate;
 
     /**
      * Receives dependencies
@@ -62,6 +61,7 @@ class Resolver
         $this->bench = $bench;
         $this->retryDownload = $retryDownload;
         $this->system = new Controller($system);
+        $this->climate = new CLImate;
     }
 
     /**
@@ -71,29 +71,17 @@ class Resolver
     {
         $array = [];
         $html = $this->getAllPage($mangas);
-        Parser::getAllLessons($html, $array);
 
+        Parser::getAllChapters($html, $array);
+        if (empty($array['mangas'])) {
+            Utils::writeln('Não foram encontrados capítulos nesta página');
+            die();
+        }
         Downloader::$currentLessonNumber = count($array['mangas']);
 
         return $array;
     }
 
-    /**
-     * Gets the latest lessons only.
-     *
-     * @return array
-     *
-     * @throws \Exception
-     */
-    public function getLatestLessons()
-    {
-        $array = [];
-
-        $html = $this->getAllPage();
-        Parser::getAllLessons($html, $array);
-
-        return $array;
-    }
 
     /**
      * Gets the html from the all page.
@@ -107,28 +95,6 @@ class Resolver
         $response = $this->client->get(MANGAS_PATH . '/' . $mangas[0], ['verify' => FALSE]);
 
         return $response->getBody()->getContents();
-    }
-
-
-    /**
-     * Download the episode of the serie.
-     *
-     * @param $serie
-     * @param $episode
-     * @return bool
-     */
-    public function downloadSerieEpisode($serie, $episode)
-    {
-        $path = LARACASTS_SERIES_PATH . '/' . $serie . '/episodes/' . $episode;
-        $episodePage = $this->getPage($path);
-        $name = $this->getNameOfEpisode($episodePage, $path);
-        $number = sprintf("%02d", $episode);
-        $saveTo = BASE_FOLDER . '/' . MANGAS_FOLDER . '/' . $serie . '/' . $number . '-' . $name . '.mp4';
-        Utils::writeln(sprintf("Download started: %s . . . . Saving on " . MANGAS_FOLDER . '/' . $serie . ' folder.',
-            $number . ' - ' . $name
-        ));
-
-        return $this->downloadLessonFromPath($episodePage, $saveTo);
     }
 
     /**
@@ -145,25 +111,25 @@ class Resolver
 
         $html = $this->getPage($path);
         $array = [];
-        Parser::getAllChapters($html, $array);
+        Parser::getAllPagesChapters($html, $array);
         if (!empty($array)) {
             $this->bench->start();
-            Utils::writeln(sprintf("Iniciando download: %s . . . . Saving on " . MANGAS_FOLDER . ' folder.',
+            $progress = $this->climate->progress()->total(count($array));
+            Utils::writeln(sprintf("Iniciando download: %s . . . .",
                 $lesson
             ));
             foreach ($array as $key => $item) {
+                $progress->advance();
                 $saveTo = BASE_FOLDER . '/' . $path . sprintf("%02d", $key + 1) . '.jpg';
                 $this->downloadMangaFromPath($item, $saveTo);
             }
             $this->bench->end();
-            Utils::write(sprintf("Elapsed time: %s, Memory: %s         ",
+            Utils::write(sprintf("Tempo: %s, Memória: %s         ",
                 $this->bench->getTime(),
                 $this->bench->getMemoryUsage()
             ));
         }
-
     }
-
 
     /**
      * Helper to download the video.
@@ -181,7 +147,6 @@ class Resolver
         return TRUE;
     }
 
-
     /**
      * Helper function to get html of a page
      * @param $path
@@ -195,18 +160,4 @@ class Resolver
             ->getContents();
     }
 
-    /**
-     * Gets the name of the serie episode.
-     *
-     * @param $html
-     *
-     * @param $path
-     * @return string
-     */
-    private function getNameOfEpisode($html, $path)
-    {
-        $name = Parser::getNameOfEpisode($html, $path);
-
-        return Utils::parseEpisodeName($name);
-    }
 }
