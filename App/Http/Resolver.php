@@ -77,6 +77,9 @@ class Resolver
             Utils::writeln('Não foram encontrados capítulos nesta página');
             die();
         }
+        
+        $array['mangas']  = array_reverse($array['mangas']);
+        
         Downloader::$currentLessonNumber = count($array['mangas']);
 
         return $array;
