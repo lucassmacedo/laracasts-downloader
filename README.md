@@ -7,8 +7,6 @@ Download de mangas do site : http://goldenmangas.com/
 Sincroniza sua pasta local com o site da goldenmangas, quando há novos capitulos de algum manga que voce já baixou.
 Se a sua pasta local estiver vazia, todas os capítulos serão baixadas!
 
-## An account with an active subscription is necessary!
-
 ## Requirements
 - PHP >= 5.4
 - php-cURL
